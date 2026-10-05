@@ -53,8 +53,8 @@ export const CrimeReportPage: React.FC = () => {
         citizenAPI.getIncidents(),
         citizenAPI.getInfrastructure()
       ]);
-      setCommunityIncidents(incList);
-      setInfrastructure(infraList);
+      setCommunityIncidents(Array.isArray(incList) ? incList : []);
+      setInfrastructure(Array.isArray(infraList) ? infraList : []);
     } catch (err) {
       console.error('Failed to load community data:', err);
     }

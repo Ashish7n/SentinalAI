@@ -169,7 +169,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         <Circle center={startCoords} radius={300} pathOptions={{ color: '#10B981', fillColor: '#10B981', fillOpacity: 0.08 }} />
 
         {/* Render Incident Markers */}
-        {incidents.map((inc) => {
+        {(Array.isArray(incidents) ? incidents : []).map((inc) => {
           let color = '#F59E0B';
           if (inc.severity === 'critical' || inc.severity === 'high') color = '#F43F5E';
           if (inc.severity === 'low') color = '#10B981';
@@ -191,7 +191,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         })}
 
         {/* Render Infrastructure Markers */}
-        {infrastructure.map((inf) => {
+        {(Array.isArray(infrastructure) ? infrastructure : []).map((inf) => {
           let color = '#06B6D4';
           if (inf.telemetryType === 'police_station') color = '#3B82F6';
           if (inf.telemetryType === 'hospital') color = '#10B981';
@@ -211,7 +211,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         })}
 
         {/* Render Route Polylines */}
-        {routes.map((route) => {
+        {(Array.isArray(routes) ? routes : []).map((route) => {
           const isSafest = route.type === 'safest';
           const color = isSafest ? '#10B981' : '#F59E0B';
           const dashArray = isSafest ? undefined : '8, 8';

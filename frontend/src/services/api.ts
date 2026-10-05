@@ -58,19 +58,34 @@ export const citizenAPI = {
     return res.data;
   },
   getInfrastructure: async (): Promise<InfrastructureTelemetry[]> => {
-    const res = await API.get('/citizen/infrastructure');
-    return res.data.infrastructure;
+    try {
+      const res = await API.get('/citizen/infrastructure');
+      return Array.isArray(res.data?.infrastructure) ? res.data.infrastructure : [];
+    } catch (err) {
+      console.error('getInfrastructure API error:', err);
+      return [];
+    }
   },
   getIncidents: async (): Promise<Incident[]> => {
-    const res = await API.get('/citizen/incidents');
-    return res.data.incidents;
+    try {
+      const res = await API.get('/citizen/incidents');
+      return Array.isArray(res.data?.incidents) ? res.data.incidents : [];
+    } catch (err) {
+      console.error('getIncidents API error:', err);
+      return [];
+    }
   }
 };
 
 export const policeAPI = {
   getIncidents: async (status?: string): Promise<Incident[]> => {
-    const res = await API.get('/police/incidents', { params: { status } });
-    return res.data.incidents;
+    try {
+      const res = await API.get('/police/incidents', { params: { status } });
+      return Array.isArray(res.data?.incidents) ? res.data.incidents : [];
+    } catch (err) {
+      console.error('police getIncidents API error:', err);
+      return [];
+    }
   },
   updateIncidentStatus: async (id: string, status: string) => {
     const res = await API.patch(`/police/incidents/${id}/status`, { status });
@@ -81,8 +96,13 @@ export const policeAPI = {
     return res.data;
   },
   getPatrolUnits: async (): Promise<PatrolUnit[]> => {
-    const res = await API.get('/police/patrol-units');
-    return res.data.units;
+    try {
+      const res = await API.get('/police/patrol-units');
+      return Array.isArray(res.data?.units) ? res.data.units : [];
+    } catch (err) {
+      console.error('getPatrolUnits API error:', err);
+      return [];
+    }
   },
   dispatchUnit: async (unitId: string, incidentId: string) => {
     const res = await API.post('/police/dispatch', { unitId, incidentId });

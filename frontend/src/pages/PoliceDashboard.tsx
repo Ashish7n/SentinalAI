@@ -39,11 +39,11 @@ export const PoliceDashboard: React.FC = () => {
         policeAPI.getPatrolUnits(),
         citizenAPI.getInfrastructure()
       ]);
-      setIncidents(incData);
-      setPatrolUnits(unitsData);
-      setInfrastructure(infraData);
+      setIncidents(Array.isArray(incData) ? incData : []);
+      setPatrolUnits(Array.isArray(unitsData) ? unitsData : []);
+      setInfrastructure(Array.isArray(infraData) ? infraData : []);
 
-      if (incData.length > 0 && !selectedIncidentId) {
+      if (Array.isArray(incData) && incData.length > 0 && !selectedIncidentId) {
         setSelectedIncidentId(incData[0].id);
       }
     } catch (err) {

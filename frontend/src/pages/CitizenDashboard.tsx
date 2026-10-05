@@ -60,8 +60,8 @@ export const CitizenDashboard: React.FC = () => {
         citizenAPI.getInfrastructure(),
         citizenAPI.getIncidents()
       ]);
-      setInfrastructure(infra);
-      setIncidents(incList);
+      setInfrastructure(Array.isArray(infra) ? infra : []);
+      setIncidents(Array.isArray(incList) ? incList : []);
       fetchScore(originLat, originLng);
     } catch (err) {
       console.error('Failed to load initial citizen dashboard telemetry:', err);
@@ -72,8 +72,10 @@ export const CitizenDashboard: React.FC = () => {
     setLoadingScore(true);
     try {
       const data = await citizenAPI.getSafetyScore(lat, lng);
-      setSafetyScore(data.breakdown);
-      setAiExplanation(data.aiExplanation);
+      if (data?.breakdown) {
+        setSafetyScore(data.breakdown);
+        setAiExplanation(data.aiExplanation || null);
+      }
     } catch (err) {
       console.error('Failed to fetch safety score:', err);
     } finally {
