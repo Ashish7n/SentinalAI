@@ -39,6 +39,7 @@ interface SafetyMapProps {
   infrastructure: InfrastructureTelemetry[];
   routes?: RouteOption[];
   onLocationSelect?: (lat: number, lng: number) => void;
+  pickMode?: 'origin' | 'destination' | null;
 }
 
 function MapEventsHandler({ onLocationSelect }: { onLocationSelect?: (lat: number, lng: number) => void }) {
@@ -69,7 +70,8 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   incidents,
   infrastructure,
   routes = [],
-  onLocationSelect
+  onLocationSelect,
+  pickMode = null
 }) => {
   const [mapTileStyle, setMapTileStyle] = useState<'google_map' | 'google_satellite' | 'sentinel_dark'>('google_map');
 
@@ -85,6 +87,16 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   return (
     <div className="w-full h-full min-h-[500px] rounded-2xl overflow-hidden border border-gray-800 relative z-0 shadow-2xl">
       
+      {/* Pick Mode Overlay Banner */}
+      {pickMode && (
+        <div className={`absolute top-4 left-4 z-[400] px-4 py-2.5 rounded-xl border shadow-lg text-xs font-bold flex items-center gap-2 animate-pulse ${
+          pickMode === 'origin' ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-rose-600 border-rose-400 text-white'
+        }`}>
+          <MapPin className="w-4 h-4" />
+          <span>Click anywhere on the map to set {pickMode === 'origin' ? 'Start Origin (Point A)' : 'Destination Target (Point B)'}</span>
+        </div>
+      )}
+
       {/* Google Maps Layer Switcher Control */}
       <div className="absolute top-4 right-4 z-[400] glass-card p-1.5 rounded-xl border border-gray-700/80 flex items-center gap-1 text-xs">
         <Layers className="w-4 h-4 text-blue-400 ml-1.5" />

@@ -177,11 +177,23 @@ export async function generateRoutes(
     ];
   }
 
-  const shortestScore = calculateSafetyScore(midLat, midLng, incidents, infrastructure).score;
-  const safestScore = calculateSafetyScore(safeViaLat, safeViaLng, incidents, infrastructure).score;
+  // Real-time calculation of safety score along route paths
+  const calculateRouteScore = (coords: [number, number][]) => {
+    if (coords.length === 0) return calculateSafetyScore(midLat, midLng, incidents, infrastructure).score;
+    // Sample up to 5 points along the path for real-time safety evaluation
+    const step = Math.max(1, Math.floor(coords.length / 5));
+    let totalScore = 0;
+    let count = 0;
+    for (let i = 0; i < coords.length; i += step) {
+      const [pLat, pLng] = coords[i];
+      totalScore += calculateSafetyScore(pLat, pLng, incidents, infrastructure).score;
+      count++;
+    }
+    return Math.round(totalScore / count);
+  };
 
-  const safestFinalScore = Math.max(84, Math.min(96, Math.max(shortestScore + 28, safestScore)));
-  const shortestFinalScore = Math.min(58, Math.max(18, shortestScore));
+  const shortestFinalScore = calculateRouteScore(shortestCoords);
+  const safestFinalScore = calculateRouteScore(safestCoords);
 
   return [
     {
@@ -192,7 +204,7 @@ export async function generateRoutes(
       estimatedMinutes: Math.max(3, Math.ceil(shortestDistanceKm * 3)), // Driving ~25-30 km/h in city traffic
       safetyScore: shortestFinalScore,
       coordinates: shortestCoords,
-      riskHighlights: ['Direct turn-by-turn road route', 'Passes through 2 unlit dark zones and high-theft incident sectors']
+      riskHighlights: ['Direct turn-by-turn road route', 'Evaluated based on real-time sector telemetry and incident proximity']
     },
     {
       id: 'route-safest',
@@ -202,7 +214,7 @@ export async function generateRoutes(
       estimatedMinutes: Math.max(5, Math.ceil(safestDistanceKm * 3.2)),
       safetyScore: safestFinalScore,
       coordinates: safestCoords,
-      riskHighlights: ['Turn-by-turn arterial road corridor', '100% illuminated smart streetlamps, CCTV coverage & 24/7 Police Outposts']
+      riskHighlights: ['Turn-by-turn arterial road corridor', 'Evaluated based on real-time streetlamps, CCTV coverage & Police Outposts']
     }
   ];
 }

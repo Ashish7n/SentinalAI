@@ -37,6 +37,9 @@ export const CitizenDashboard: React.FC = () => {
   const [destLng, setDestLng] = useState<number>(78.3808);
   const [destName, setDestName] = useState<string>('HITEC City Cyber Towers & IT Hub');
 
+  // Map Interactive Pin Pick Mode ('origin' | 'destination' | null)
+  const [activePickMode, setActivePickMode] = useState<'origin' | 'destination' | null>(null);
+
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [infrastructure, setInfrastructure] = useState<InfrastructureTelemetry[]>([]);
   const [safetyScore, setSafetyScore] = useState<RiskScoreBreakdown | null>(null);
@@ -77,6 +80,8 @@ export const CitizenDashboard: React.FC = () => {
       setLoadingScore(false);
     }
   };
+
+  const isSameLocation = originLat === destLat && originLng === destLng;
 
   const handleOriginSelect = (placeId: string) => {
     setSelectedOriginId(placeId);
@@ -121,6 +126,9 @@ export const CitizenDashboard: React.FC = () => {
   };
 
   const handleCalculateRoutes = async () => {
+    if (isSameLocation) {
+      return;
+    }
     setLoadingRoutes(true);
     try {
       const data = await citizenAPI.getSafeRoute(originLat, originLng, destLat, destLng);
@@ -138,6 +146,26 @@ export const CitizenDashboard: React.FC = () => {
     if (score >= 60) return 'text-blue-700 border-blue-300 bg-blue-50';
     if (score >= 40) return 'text-amber-700 border-amber-300 bg-amber-50';
     return 'text-rose-700 border-rose-300 bg-rose-50';
+  };
+
+  const handleMapLocationSelect = (lat: number, lng: number) => {
+    const formattedLat = parseFloat(lat.toFixed(4));
+    const formattedLng = parseFloat(lng.toFixed(4));
+
+    if (activePickMode === 'origin') {
+      setOriginLat(formattedLat);
+      setOriginLng(formattedLng);
+      setOriginName(`Map Pin (${formattedLat}, ${formattedLng})`);
+      setSelectedOriginId('custom');
+      fetchScore(formattedLat, formattedLng);
+      setActivePickMode(null);
+    } else if (activePickMode === 'destination') {
+      setDestLat(formattedLat);
+      setDestLng(formattedLng);
+      setDestName(`Map Pin (${formattedLat}, ${formattedLng})`);
+      setSelectedDestId('custom');
+      setActivePickMode(null);
+    }
   };
 
   return (
@@ -185,21 +213,48 @@ export const CitizenDashboard: React.FC = () => {
               </button>
             </div>
 
+            {/* Same Location Alert */}
+            {isSameLocation && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold flex items-start gap-2 animate-bounce-short">
+                <span className="text-base">⚠️</span>
+                <div>
+                  <strong className="block text-amber-900 font-extrabold">You are at the same location!</strong>
+                  <span>Start Origin and Destination Target cannot be identical. Please select different locations or adjust latitude/longitude coordinates.</span>
+                </div>
+              </div>
+            )}
+
             {/* Start Origin Input (Point A) */}
             <div className="space-y-1.5 text-xs">
-              <label className="text-emerald-700 font-bold flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-extrabold">A</span>
-                <span>Start Origin Point</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-emerald-700 font-bold flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-extrabold">A</span>
+                  <span>Start Origin Point</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setActivePickMode(activePickMode === 'origin' ? null : 'origin')}
+                  className={`px-2 py-0.5 rounded-lg border font-semibold flex items-center gap-1 text-[11px] transition-all ${
+                    activePickMode === 'origin' 
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm' 
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                  }`}
+                >
+                  <MapPin className="w-3 h-3" />
+                  <span>{activePickMode === 'origin' ? 'Click Map Now...' : 'Choose on Map'}</span>
+                </button>
+              </div>
               <select
                 value={selectedOriginId}
                 onChange={(e) => handleOriginSelect(e.target.value)}
                 className="w-full p-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-blue-600 font-medium cursor-pointer"
               >
                 {POPULAR_CITY_PLACES.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.category})</option>
+                  <option key={p.id} value={p.id} disabled={p.id === selectedDestId}>
+                    {p.name} ({p.category}) {p.id === selectedDestId ? '(Already selected as Destination)' : ''}
+                  </option>
                 ))}
-                <option value="custom">📍 Custom Lat / Lng Coordinates</option>
+                <option value="custom">📍 Custom / Map Pin Coordinates</option>
               </select>
 
               {selectedOriginId === 'custom' && (
@@ -208,7 +263,7 @@ export const CitizenDashboard: React.FC = () => {
                     type="number"
                     step="0.0001"
                     value={originLat}
-                    onChange={(e) => { setOriginLat(parseFloat(e.target.value)); setOriginName(`Custom (${e.target.value})`); }}
+                    onChange={(e) => { setOriginLat(parseFloat(e.target.value) || 0); setOriginName(`Custom (${e.target.value})`); }}
                     className="p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-xs"
                     placeholder="Lat"
                   />
@@ -216,7 +271,7 @@ export const CitizenDashboard: React.FC = () => {
                     type="number"
                     step="0.0001"
                     value={originLng}
-                    onChange={(e) => { setOriginLng(parseFloat(e.target.value)); setOriginName(`Custom (${e.target.value})`); }}
+                    onChange={(e) => { setOriginLng(parseFloat(e.target.value) || 0); setOriginName(`Custom (${e.target.value})`); }}
                     className="p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-xs"
                     placeholder="Lng"
                   />
@@ -226,19 +281,35 @@ export const CitizenDashboard: React.FC = () => {
 
             {/* Destination Target Input (Point B) */}
             <div className="space-y-1.5 text-xs">
-              <label className="text-rose-700 font-bold flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-extrabold">B</span>
-                <span>Destination Target</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-rose-700 font-bold flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-extrabold">B</span>
+                  <span>Destination Target</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setActivePickMode(activePickMode === 'destination' ? null : 'destination')}
+                  className={`px-2 py-0.5 rounded-lg border font-semibold flex items-center gap-1 text-[11px] transition-all ${
+                    activePickMode === 'destination' 
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm' 
+                      : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                  }`}
+                >
+                  <MapPin className="w-3 h-3" />
+                  <span>{activePickMode === 'destination' ? 'Click Map Now...' : 'Choose on Map'}</span>
+                </button>
+              </div>
               <select
                 value={selectedDestId}
                 onChange={(e) => handleDestSelect(e.target.value)}
                 className="w-full p-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-blue-600 font-medium cursor-pointer"
               >
                 {POPULAR_CITY_PLACES.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.category})</option>
+                  <option key={p.id} value={p.id} disabled={p.id === selectedOriginId}>
+                    {p.name} ({p.category}) {p.id === selectedOriginId ? '(Already selected as Origin)' : ''}
+                  </option>
                 ))}
-                <option value="custom">📍 Custom Lat / Lng Coordinates</option>
+                <option value="custom">📍 Custom / Map Pin Coordinates</option>
               </select>
 
               {selectedDestId === 'custom' && (
@@ -247,7 +318,7 @@ export const CitizenDashboard: React.FC = () => {
                     type="number"
                     step="0.0001"
                     value={destLat}
-                    onChange={(e) => { setDestLat(parseFloat(e.target.value)); setDestName(`Custom (${e.target.value})`); }}
+                    onChange={(e) => { setDestLat(parseFloat(e.target.value) || 0); setDestName(`Custom (${e.target.value})`); }}
                     className="p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-xs"
                     placeholder="Lat"
                   />
@@ -255,7 +326,7 @@ export const CitizenDashboard: React.FC = () => {
                     type="number"
                     step="0.0001"
                     value={destLng}
-                    onChange={(e) => { setDestLng(parseFloat(e.target.value)); setDestName(`Custom (${e.target.value})`); }}
+                    onChange={(e) => { setDestLng(parseFloat(e.target.value) || 0); setDestName(`Custom (${e.target.value})`); }}
                     className="p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-xs"
                     placeholder="Lng"
                   />
@@ -266,11 +337,19 @@ export const CitizenDashboard: React.FC = () => {
             {/* Action Button */}
             <button
               onClick={handleCalculateRoutes}
-              disabled={loadingRoutes}
-              className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs transition-all flex items-center justify-center gap-2 shadow-sm"
+              disabled={loadingRoutes || isSameLocation}
+              className={`w-full py-3.5 rounded-xl text-white font-extrabold text-xs transition-all flex items-center justify-center gap-2 shadow-sm ${
+                isSameLocation ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
               <Navigation className="w-4 h-4" />
-              <span>{loadingRoutes ? 'Computing Road Path Graph...' : 'Compute Safest vs Shortest Corridor'}</span>
+              <span>
+                {isSameLocation 
+                  ? 'Select Different Origin & Destination' 
+                  : loadingRoutes 
+                  ? 'Computing Road Path Graph...' 
+                  : 'Compute Safest vs Shortest Corridor'}
+              </span>
             </button>
 
             {/* Route Breakdown */}
@@ -353,6 +432,8 @@ export const CitizenDashboard: React.FC = () => {
             incidents={incidents}
             infrastructure={infrastructure}
             routes={routes}
+            onLocationSelect={handleMapLocationSelect}
+            pickMode={activePickMode}
           />
         </div>
 
